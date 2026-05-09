@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CPU Scheduling Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Open+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --dark:    #290907;
+    --earth:   #57473A;
+    --sage:    #6E8658;
+    --sky:     #73A1B2;
+    --mist:    #D0D5CE;
+    --cream:   #EFE9E1;
+    --white:   #FAFAF8;
+    --text:    #290907;
+    --subtle:  #57473A;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Open Sans', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--dark);
+    color: var(--cream);
+    padding: 28px 48px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    border-bottom: 4px solid var(--sage);
+  }
+  header h1 {
+    font-family: 'Libre Baskerville', serif;
+    font-size: 1.9rem;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    color: var(--cream);
+  }
+  header span {
+    font-size: 0.75rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--sky);
+    font-weight: 500;
+  }
+
+  /* ── Layout ── */
+  .app {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    min-height: calc(100vh - 89px);
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    background: var(--white);
+    border-right: 1px solid var(--mist);
+    padding: 32px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .section-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--subtle);
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  .algo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .algo-btn {
+    background: transparent;
+    border: 1.5px solid var(--mist);
+    border-radius: 6px;
+    padding: 9px 6px;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--subtle);
+    cursor: pointer;
+    transition: all 0.18s;
+    text-align: center;
+    line-height: 1.3;
+    letter-spacing: 0.02em;
+  }
+  .algo-btn:hover { border-color: var(--sky); color: var(--dark); background: #EBF3F7; }
+  .algo-btn.active {
+    background: var(--dark);
+    border-color: var(--dark);
+    color: var(--cream);
+  }
+
+  /* form controls */
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  label {
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--subtle);
+    font-weight: 600;
+  }
+  input[type=number], select {
+    background: var(--cream);
+    border: 1.5px solid var(--mist);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.85rem;
+    color: var(--dark);
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+  input[type=number]:focus, select:focus { border-color: var(--sky); }
+  input[type=number]::-webkit-inner-spin-button { opacity: 0.4; }
+
+  .priority-order { display: flex; gap: 8px; }
+  .po-btn {
+    flex: 1;
+    padding: 8px;
+    border: 1.5px solid var(--mist);
+    border-radius: 6px;
+    background: transparent;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--subtle);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .po-btn.active { background: var(--sage); border-color: var(--sage); color: white; }
+
+  /* process table */
+  .process-table-wrap { overflow-x: auto; }
+  table.input-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  .input-table th {
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--subtle);
+    font-weight: 600;
+    padding: 6px 4px;
+    border-bottom: 1.5px solid var(--mist);
+    text-align: center;
+  }
+  .input-table td { padding: 4px 3px; }
+  .input-table td input {
+    width: 100%;
+    padding: 6px 8px;
+    font-size: 0.78rem;
+    border: 1.5px solid var(--mist);
+    border-radius: 5px;
+    background: var(--cream);
+    color: var(--dark);
+    font-family: 'Open Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .input-table td input:focus { border-color: var(--sky); }
+  .input-table td input.id-input { font-weight: 600; color: var(--earth); }
+
+  /* run button */
+  .run-btn {
+    background: var(--sage);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 13px;
+    font-family: 'Libre Baskerville', serif;
+    font-size: 0.9rem;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    margin-top: 4px;
+  }
+  .run-btn:hover { background: #5d7249; }
+  .run-btn:active { transform: scale(0.98); }
+
+  /* ── Main panel ── */
+  .main {
+    padding: 36px 44px;
+    display: flex;
+    flex-direction: column;
+    gap: 36px;
+    overflow-x: auto;
+  }
+
+  #resultsArea > div {
+    margin-bottom: 1.2rem; /* adjust as needed */
+  }
+
+  .panel-title {
+    font-family: 'Libre Baskerville', serif;
+    font-size: 0.95rem;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    color: var(--dark);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .panel-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--mist);
+  }
+
+  /* Gantt */
+  .gantt-scroll { overflow-x: auto; padding-bottom: 8px; }
+  .gantt-wrap { display: flex; flex-direction: column; gap: 0; min-width: max-content; }
+  .gantt-row { display: flex; height: 44px; }
+  .gantt-block {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    border-right: 2px solid var(--cream);
+    position: relative;
+    transition: opacity 0.15s;
+    min-width: 28px;
+  }
+  .gantt-block:hover { opacity: 0.85; }
+  .gantt-block.idle { background: var(--mist); color: var(--subtle); }
+  .gantt-ticks { display: flex; font-size: 0.62rem; color: var(--subtle); font-family: 'Open Sans'; margin-top: 3px; }
+  .gantt-tick { display: flex; justify-content: flex-start; }
+
+  /* Results table */
+  .results-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .results-table th {
+    background: var(--dark);
+    color: var(--cream);
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 11px 16px;
+    text-align: center;
+  }
+  .results-table td {
+    padding: 10px 16px;
+    text-align: center;
+    border-bottom: 1px solid var(--mist);
+    color: var(--text);
+    font-size: 0.82rem;
+  }
+  .results-table tr:nth-child(even) td { background: #F5F2EE; }
+  .results-table tr:hover td { background: #EBF3F7; }
+  .results-table .process-id { font-weight: 700; color: var(--earth); }
+
+  /* Summary cards */
+  .summary-cards { display: flex; gap: 16px; flex-wrap: wrap; }
+  .card {
+    background: var(--white);
+    border: 1px solid var(--mist);
+    border-radius: 10px;
+    padding: 18px 24px;
+    min-width: 150px;
+    flex: 1;
+    border-top: 3px solid var(--sage);
+  }
+  .card-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--subtle);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .card-value {
+    font-family: 'Libre Baskerville', serif;
+    font-size: 1.5rem;
+    color: var(--dark);
+  }
+  .card-unit { font-size: 0.75rem; color: var(--subtle); font-family: 'Open Sans'; margin-left: 3px; }
+
+  /* Empty state */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 320px;
+    color: var(--mist);
+  }
+  .empty-state svg { opacity: 0.35; }
+  .empty-state p {
+    font-family: 'Libre Baskerville', serif;
+    font-size: 1rem;
+    color: var(--mist);
+    font-style: italic;
+  }
+
+  /* Error */
+  .error-msg {
+    background: #fde8e8;
+    border: 1px solid #e8a0a0;
+    color: #7a2020;
+    border-radius: 7px;
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    display: none;
+  }
+
+  /* Execution sequence */
+  .seq-wrap { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .seq-item {
+    background: var(--sky);
+    color: white;
+    border-radius: 5px;
+    padding: 5px 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  .seq-item.idle { background: var(--mist); color: var(--subtle); }
+  .seq-arrow { color: var(--mist); font-size: 0.8rem; }
+
+  .algo-tag {
+    display: inline-block;
+    background: var(--sky);
+    color: white;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    header { padding: 20px 24px; }
+    .sidebar, .main { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>CPU Scheduling Simulator</h1>
+  <span>Operating Systems</span>
+</header>
+
+<div class="app">
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div>
+      <div class="section-label">Algorithm</div>
+      <div class="algo-grid" id="algoGrid">
+        <button class="algo-btn active" data-algo="1">FCFS</button>
+        <button class="algo-btn" data-algo="2">SJF</button>
+        <button class="algo-btn" data-algo="3">SRTF</button>
+        <button class="algo-btn" data-algo="4">Round Robin</button>
+        <button class="algo-btn" data-algo="5">Non-Preemptive Priority</button>
+        <button class="algo-btn" data-algo="6">Preemptive Priority</button>
+        <button class="algo-btn" data-algo="7">Priority + RR</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Number of Processes</label>
+      <input type="number" id="numProc" value="3" min="3" max="10"/>
+    </div>
+
+    <div class="field" id="quantumField" style="display:none">
+      <label>Time Quantum (ms)</label>
+      <input type="number" id="quantum" value="2" min="1"/>
+    </div>
+
+    <div class="field" id="priorityOrderField" style="display:none">
+      <label>Higher Priority =</label>
+      <div class="priority-order">
+        <button class="po-btn active" id="poLow">Lower Number</button>
+        <button class="po-btn" id="poHigh">Higher Number</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Processes</div>
+      <div class="process-table-wrap">
+        <table class="input-table" id="processTable">
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <button type="button" class="run-btn" onclick="runSimulation()">Run Simulation</button>
+  </aside>
+
+  <!-- ── Main panel ── -->
+  <main class="main" id="mainPanel">
+    <div id="resultsArea">
+      <div class="empty-state">
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+          <rect x="8" y="16" width="48" height="32" rx="4" stroke="#D0D5CE" stroke-width="2.5"/>
+          <rect x="20" y="28" width="8" height="8" rx="1.5" fill="#D0D5CE"/>
+          <rect x="36" y="28" width="8" height="8" rx="1.5" fill="#D0D5CE"/>
+          <line x1="32" y1="8" x2="32" y2="16" stroke="#D0D5CE" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="20" y1="8" x2="32" y2="8" stroke="#D0D5CE" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="44" y1="8" x2="32" y2="8" stroke="#D0D5CE" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <p>Configure and run a simulation to see results</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  GLOBAL STATE
+//  These two variables drive conditional rendering throughout:
+//  - selectedAlgo: determines which algorithm runs and which
+//    input fields (quantum, priority) are shown in the sidebar.
+//  - higherIsBetter: controls priority normalization before
+//    running any priority-based algorithm (algos 5, 6, 7).
+// ════════════════════════════════════════════════════════════
+let selectedAlgo = 1;
+let higherIsBetter = false;
+
+// ── Algorithm name maps ──────────────────────────────────────
+// Used by renderResults() to display full and abbreviated names
+// in the results panel after simulation.
+const ALGO_NAMES = {
+  1: 'First-Come, First-Served',
+  2: 'Non-Preemptive SJF',
+  3: 'Preemptive SJF (SRTF)',
+  4: 'Round Robin',
+  5: 'Non-Preemptive Priority',
+  6: 'Preemptive Priority',
+  7: 'Priority + Round Robin'
+};
+const ALGO_SHORT = {1:'FCFS',2:'NP-SJF',3:'SRTF',4:'RR',5:'NP-PS',6:'P-PS',7:'PS-RR'};
+
+// ── Palette for process blocks ──────────────────────────────
+const PROC_COLORS = [
+  '#73A1B2','#6E8658','#57473A','#9CB8C5','#8FA878',
+  '#A0876E','#4A7A8E','#4E6640','#3D2F25','#B8CDD6'
+];
+
+// ════════════════════════════════════════════════════════════
+//  UI INITIALIZATION — Event Listeners
+//  Wires up all sidebar controls to their handlers on page load.
+// ════════════════════════════════════════════════════════════
+ 
+// Algorithm selector buttons: clicking one sets selectedAlgo and
+// calls updateUIForAlgo() to show/hide quantum and priority fields.
+document.querySelectorAll('.algo-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.algo-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedAlgo = parseInt(btn.dataset.algo);
+    updateUIForAlgo();
+  });
+});
+
+
+// Rebuilds the process input table whenever the process count changes.
+document.getElementById('numProc').addEventListener('input', buildProcessTable);
+ 
+// Priority convention toggle: sets higherIsBetter flag.
+// "Lower Number" → priority 1 beats priority 5 (higherIsBetter = false).
+// "Higher Number" → priority 5 beats priority 1 (higherIsBetter = true).
+// normalizePriority() uses this flag to invert values before scheduling.
+document.getElementById('poLow').addEventListener('click', () => {
+  higherIsBetter = false;
+  document.getElementById('poLow').classList.add('active');
+  document.getElementById('poHigh').classList.remove('active');
+});
+document.getElementById('poHigh').addEventListener('click', () => {
+  higherIsBetter = true;
+  document.getElementById('poHigh').classList.add('active');
+  document.getElementById('poLow').classList.remove('active');
+});
+
+// ── updateUIForAlgo() ────────────────────────────────────────
+// Shows or hides conditional sidebar fields based on the
+// selected algorithm:
+//   - Time Quantum field: only needed for RR (4) and Priority+RR (7).
+//   - Priority Order field: only needed for priority algorithms (5, 6, 7).
+// Also rebuilds the process table to add/remove the Priority column.
+function updateUIForAlgo() {
+  const needsQuantum   = [4, 7].includes(selectedAlgo);
+  const needsPriority  = [5, 6, 7].includes(selectedAlgo);
+  document.getElementById('quantumField').style.display      = needsQuantum  ? '' : 'none';
+  document.getElementById('priorityOrderField').style.display = needsPriority ? '' : 'none';
+  updatePriorityColumn(needsPriority);
+}
+
+function updatePriorityColumn(needsPriority) {
+  const thead = document.getElementById('tableHead');
+  const tbody = document.getElementById('tableBody');
+  const headerRow = thead.querySelector('tr');
+  const hasPriorityCol = headerRow.cells.length >= 4;
+
+  // Update header
+  if (needsPriority && !hasPriorityCol) {
+    const th = document.createElement('th');
+    th.textContent = 'Pri';
+    headerRow.appendChild(th);
+  } else if (!needsPriority && hasPriorityCol) {
+    headerRow.removeChild(headerRow.lastElementChild);
+  }
+
+  // Update each data row
+  tbody.querySelectorAll('tr').forEach(tr => {
+    const hasPriCell = tr.cells.length >= 4;
+    if (needsPriority && !hasPriCell) {
+      const td = document.createElement('td');
+      td.innerHTML = '<input type="number" value="1" min="1" placeholder="1"/>';
+      tr.appendChild(td);
+    } else if (!needsPriority && hasPriCell) {
+      tr.removeChild(tr.lastElementChild);
+    }
+  });
+}
+
+// ── buildProcessTable() ──────────────────────────────────────
+// Dynamically generates the process input table in the sidebar.
+//
+// INPUT:  Reads 'numProc' field (clamped to 3–10) and selectedAlgo.
+// OUTPUT: Rebuilds <thead> and <tbody> of #processTable.
+//
+// Behavior:
+//  - Preserves existing user-entered values when the table is
+//    rebuilt (e.g. when switching algorithms or changing count).
+//  - Conditionally adds a "Priority" column for algos 5, 6, 7.
+//  - Default row values: ID = "P{n}", AT = 0, BT = empty, Pri = 1.
+function buildProcessTable() {
+  const n = Math.max(3, Math.min(10, parseInt(document.getElementById('numProc').value) || 3));
+  const needsPriority = [5, 6, 7].includes(selectedAlgo);
+
+  const thead = document.getElementById('tableHead');
+  const tbody = document.getElementById('tableBody');
+
+  thead.innerHTML = `<tr>
+    <th>ID</th><th>AT</th><th>BT</th>${needsPriority ? '<th>Pri</th>' : ''}
+  </tr>`;
+
+  // Preserve existing values
+  const existing = [];
+  tbody.querySelectorAll('tr').forEach(tr => {
+    const inp = tr.querySelectorAll('input');
+    existing.push({
+      id: inp[0]?.value || '',
+      at: inp[1]?.value || '0',
+      bt: inp[2]?.value || '',
+      pr: inp[3]?.value || '1',
+    });
+  });
+
+  tbody.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const e = existing[i] || {};
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td><input class="id-input" type="text" value="${e.id || 'P'+(i+1)}" maxlength="6"/></td>
+      <td><input type="number" value="${e.at || 0}" min="0" placeholder="0"/></td>
+      <td><input type="number" value="${e.bt || ''}" min="1" placeholder="ms"/></td>
+      ${needsPriority ? `<td><input type="number" value="${e.pr || 1}" min="1" placeholder="1"/></td>` : ''}
+    `;
+    tbody.appendChild(row);
+  }
+}
+
+// ── readProcesses() ──────────────────────────────────────────
+// Reads and validates all process inputs from the sidebar table.
+//
+// INPUT:  DOM — reads every <input> in #tableBody rows.
+// OUTPUT: Array of process objects:
+//   { key: string, arrival_time: int, burst_time: int, priority: int }
+//   priority is -1 for non-priority algorithms.
+//
+// Throws a descriptive Error string if any burst time is missing,
+// non-positive, or if priority is missing for priority algorithms.
+// The caller (runSimulation) catches these and calls showError().
+function readProcesses() {
+  const rows = document.getElementById('tableBody').querySelectorAll('tr');
+  const needsPriority = [5,6,7].includes(selectedAlgo);
+  const processes = [];
+  for (let i = 0; i < rows.length; i++) {
+    const inputs = rows[i].querySelectorAll('input');
+    const id = inputs[0].value.trim() || `P${i+1}`;
+    const at = parseInt(inputs[1].value);
+    const bt = parseInt(inputs[2].value);
+    const pr = needsPriority ? parseInt(inputs[3].value) : -1;
+    if (isNaN(at) || isNaN(bt) || bt <= 0) throw new Error(`Invalid values for process ${id}. Burst time must be a positive integer.`);
+    if (needsPriority && isNaN(pr)) throw new Error(`Invalid priority for process ${id}.`);
+    processes.push({ key: id, arrival_time: at, burst_time: bt, priority: pr });
+  }
+  return processes;
+}
+
+// ── Show error ─────────────────────────────────────────────
+// Displays a validation or simulation error in the sidebar's
+// error banner (#errorMsg). The banner auto-hides after 4 seconds.
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 4000);
+}
+
+// Displays a validation or simulation error in the sidebar's
+// error banner (#errorMsg). The banner auto-hides after 4 seconds.
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+// ════════════════════════════════════════════════════════════
+//  SCHEDULING ALGORITHMS
+//
+//  All algorithms share the same interface:
+//    INPUT:  processes[] — array of { key, arrival_time, burst_time, priority }
+//            (plus timeSlice for RR / PS-RR)
+//    OUTPUT: { procs[], seq[] }
+//      - procs[]: enriched with waiting_time (and finish/turnaround
+//                 added later by computeStats)
+//      - seq[]:   execution timeline — array of
+//                 { key, start_time, burst_time }
+//                 where key='-' represents CPU idle time.
+// ════════════════════════════════════════════════════════════
+ 
+// ── fcfs(processes) — First-Come, First-Served ───────────────
+// Core logic:
+//   Non-preemptive. Processes run in strict arrival order.
+//   If the CPU finishes one process before the next has arrived,
+//   an idle block ('-') is inserted and the clock jumps forward.
+//
+//   waiting_time = start_time − arrival_time
+//   (first process always has waiting_time = 0)
+function fcfs(processes) {
+  const procs = clone(processes);
+  procs.sort((a,b) => a.arrival_time - b.arrival_time);
+  procs[0].waiting_time = 0;
+  let time = procs[0].arrival_time;
+  procs[0].start_time = time;
+  const seq = [{ key: procs[0].key, start_time: time, burst_time: procs[0].burst_time }];
+
+  for (let i = 1; i < procs.length; i++) {
+    time += procs[i-1].burst_time;
+    if (procs[i].arrival_time > time) {
+      const idle = procs[i].arrival_time - time;
+      seq.push({ key: '-', start_time: time, burst_time: idle });
+      time += idle;
+    }
+    procs[i].waiting_time = time - procs[i].arrival_time;
+    seq.push({ key: procs[i].key, start_time: time, burst_time: procs[i].burst_time });
+  }
+  return { procs, seq };
+}
+
+// ── sjf(processes) — Non-Preemptive Shortest Job First ───────
+// Core logic:
+//   Non-preemptive. At each scheduling decision, the process with
+//   the smallest burst_time among all arrived processes is chosen.
+//   Once a process starts, it runs to completion.
+//
+//   Strategy:
+//   1. Sort by arrival_time; pick the shortest-burst process from
+//      those that have arrived simultaneously at t=0.
+//   2. After each process finishes, collect all processes that
+//      arrived during its execution into a readyQueue.
+//   3. From the readyQueue, pick the one with the smallest burst_time.
+//   4. If the readyQueue is empty but processes remain, insert an
+//      idle block and skip to the next arrival.
+//
+//   waiting_time = finish_time_of_previous_process − arrival_time
+function sjf(processes) {
+  const procs = clone(processes);
+  const n = procs.length;
+  if (n === 1) {
+    procs[0].waiting_time = 0;
+    return { procs, seq: [{ key: procs[0].key, start_time: procs[0].arrival_time, burst_time: procs[0].burst_time }] };
+  }
+  procs.sort((a,b) => a.arrival_time - b.arrival_time);
+  const secondArrIdx = procs.findIndex(p => p.arrival_time !== procs[0].arrival_time);
+  const pool = secondArrIdx === -1 ? procs : procs.slice(0, secondArrIdx);
+  let sj = pool.reduce((a,b) => a.burst_time <= b.burst_time ? a : b);
+  let sjIdx = procs.indexOf(sj);
+  let time = sj.arrival_time;
+  procs[sjIdx].waiting_time = 0;
+  let bt = procs[sjIdx].burst_time;
+  const readyQueue = [];
+  const seq = [{ key: sj.key, start_time: time, burst_time: sj.burst_time }];
+  const notArrived = procs.filter((_, i) => i !== sjIdx);
+  let completed = 1;
+
+  while (completed < n) {
+    const end = time + bt;
+    let arrivCtr = 0;
+    for (const pna of notArrived) {
+      if (pna.arrival_time >= time && pna.arrival_time <= end) {
+        readyQueue.push(pna); arrivCtr++;
+      } else break;
+    }
+    notArrived.splice(0, arrivCtr);
+    time = end;
+    if (readyQueue.length > 0) {
+      const curr = readyQueue.reduce((a,b) => a.burst_time <= b.burst_time ? a : b);
+      curr.waiting_time = end - curr.arrival_time;
+      completed++;
+      readyQueue.splice(readyQueue.indexOf(curr), 1);
+      bt = curr.burst_time;
+      seq.push({ key: curr.key, start_time: time, burst_time: curr.burst_time });
+    } else if (notArrived.length > 0) {
+      bt = notArrived[0].arrival_time - end;
+      seq.push({ key: '-', start_time: end, burst_time: bt });
+    }
+  }
+  return { procs, seq };
+}
+ 
+// ── srt(processes) — Shortest Remaining Time First (SRTF) ────
+// Core logic:
+//   Preemptive version of SJF. The CPU always runs the process
+//   with the shortest *remaining* burst time. A running process
+//   is preempted the moment a new process arrives with a shorter
+//   remaining time.
+//
+// Tick-by-tick SRTF simulation.
+// Tiebreaker: if remaining times are equal, the process that arrived first wins
+// (FCFS). If arrival times are also equal, the one already running keeps the CPU
+// (no unnecessary preemption).
+function srt(processes) {
+  const procs = clone(processes);
+  const n = procs.length;
+  procs.sort((a,b) => a.arrival_time - b.arrival_time);
+  for (const p of procs) {
+    p.remaining_time = p.burst_time;
+    p.finish_time    = 0;
+    p.waiting_time   = 0;
+  }
+ 
+  let time    = procs[0].arrival_time;
+  let running = null;   // key of currently running process
+  const rawSeq = [];    // [{key, start, end}] — one entry per continuous run
+ 
+  const totalBurst = procs.reduce((s,p) => s + p.burst_time, 0);
+  const endTime    = time + totalBurst + procs[procs.length-1].arrival_time + 1;
+  let completed    = 0;
+ 
+  while (completed < n) {
+    // Collect all processes that have arrived by 'time'
+    const ready = procs.filter(p => p.arrival_time <= time && p.remaining_time > 0);
+ 
+    if (ready.length === 0) {
+      // CPU idle — jump to next arrival
+      const nextAT = procs.filter(p => p.remaining_time > 0)
+                          .reduce((mn, p) => Math.min(mn, p.arrival_time), Infinity);
+      if (rawSeq.length > 0 && rawSeq[rawSeq.length-1].key === '-') {
+        rawSeq[rawSeq.length-1].end = nextAT;
+      } else {
+        rawSeq.push({ key: '-', start: time, end: nextAT });
+      }
+      time = nextAT;
+      running = null;
+      continue;
+    }
+ 
+    // Pick the process to run:
+    // 1. Shortest remaining time
+    // 2. Tie → earliest arrival time (FCFS)
+    // 3. Tie → currently running process (no preemption on equal)
+    const minRem = ready.reduce((mn, p) => Math.min(mn, p.remaining_time), Infinity);
+    const candidates = ready.filter(p => p.remaining_time === minRem);
+    const minAT = candidates.reduce((mn, p) => Math.min(mn, p.arrival_time), Infinity);
+    const fcfsCandidates = candidates.filter(p => p.arrival_time === minAT);
+    let chosen;
+    if (fcfsCandidates.some(p => p.key === running)) {
+      chosen = fcfsCandidates.find(p => p.key === running);
+    } else {
+      chosen = fcfsCandidates[0];
+    }
+ 
+    // Find the next event time: next arrival or this process finishing
+    const nextArrival = procs.filter(p => p.arrival_time > time && p.remaining_time > 0)
+                             .reduce((mn, p) => Math.min(mn, p.arrival_time), Infinity);
+    const runUntil = Math.min(time + chosen.remaining_time, nextArrival);
+ 
+    // Append to raw sequence (merge consecutive same-process blocks)
+    if (rawSeq.length > 0 && rawSeq[rawSeq.length-1].key === chosen.key) {
+      rawSeq[rawSeq.length-1].end = runUntil;
+    } else {
+      rawSeq.push({ key: chosen.key, start: time, end: runUntil });
+    }
+ 
+    const delta = runUntil - time;
+    chosen.remaining_time -= delta;
+    time    = runUntil;
+    running = chosen.key;
+ 
+    if (chosen.remaining_time === 0) {
+      chosen.finish_time = time;
+      completed++;
+      running = null;
+    }
+  }
+
+   // Build seq array in the format the rest of the code expects
+  const seq = rawSeq
+    .filter(s => s.end > s.start)
+    .map(s => ({ key: s.key, start_time: s.start, burst_time: s.end - s.start }));
+ 
+  // Compute waiting times
+  for (const p of procs) {
+    p.turnaround_time = p.finish_time - p.arrival_time;
+    p.waiting_time    = p.turnaround_time - p.burst_time;
+    if (p.waiting_time < 0) p.waiting_time = 0;
+  }
+ 
+  return { procs, seq };
+}
+
+// ── rr(processes, timeSlice) — Round Robin ────────────────────
+// Core logic:
+//   Preemptive. Processes take turns on the CPU in FIFO order,
+//   each receiving at most `timeSlice` ms per turn. If a process
+//   doesn't finish in its slice, it re-joins the back of the queue.
+//
+//   Strategy:
+//   1. Sort processes by arrival_time; initialize a ready queue (rq)
+//      with the first-arriving process.
+//   2. Each iteration: dequeue the front process, run it for
+//      min(timeSlice, remaining_time), then advance the clock.
+//   3. After each slice, enqueue any processes that arrived during
+//      that slice (from naList, the not-yet-arrived list).
+//   4. If the process still has remaining time, re-enqueue it.
+//   5. If the queue is empty, insert an idle block and jump to
+//      the next arriving process.
+//
+//   Key tracking fields per process:
+//     time_executing: cumulative CPU time already used (for WT calc)
+//     last_start_time: clock time when the process last started a slice
+//
+//   waiting_time = last_start_time − time_executing − arrival_time
+function rr(processes, timeSlice) {
+  const procs = clone(processes);
+  procs.sort((a,b) => a.arrival_time - b.arrival_time);
+  for (const p of procs) { p.remaining_time = p.burst_time; p.time_executing = 0; }
+  const notArrived = procs.slice(1).map(p => ({...p}));
+  for (let i=0;i<procs.length;i++) { notArrived[i-1] = notArrived[i-1] || null; }
+  const na2 = clone(procs.slice(1));
+  const rq = [clone(procs[0])];
+  let time = procs[0].arrival_time;
+  const seq = [];
+  let completed = 0;
+  const procMap = {};
+  for (const p of procs) procMap[p.key] = p;
+  const naList = clone(procs.slice(1));
+
+  while (completed < procs.length) {
+    if (rq.length === 0) {
+      const nxt = naList.shift();
+      const idle = nxt.arrival_time - time;
+      seq.push({ key: '-', start_time: time, burst_time: idle });
+      time += idle;
+      rq.push(nxt);
+    }
+    const cur = rq[0];
+    seq.push({ key: cur.key, start_time: time, burst_time: cur.remaining_time });
+    cur.remaining_time -= timeSlice;
+    const rt = cur.remaining_time;
+    const orig = procMap[cur.key];
+    if (rt <= 0) { orig.last_start_time = time; completed++; }
+    const advTime = rt >= 0 ? timeSlice : timeSlice + rt;
+    time += advTime;
+    rq.shift();
+    let arrivCtr = 0;
+    for (const pna of naList) {
+      if (pna.arrival_time <= time) { rq.push(pna); arrivCtr++; }
+      else break;
+    }
+    naList.splice(0, arrivCtr);
+    if (rt > 0) { orig.time_executing += timeSlice; rq.push(cur); }
+    seq[seq.length-1].burst_time = rt <= 0 ? (timeSlice + rt) : timeSlice;
+  }
+
+  for (const p of procs) {
+    p.waiting_time = (p.last_start_time || 0) - (p.time_executing || 0) - p.arrival_time;
+  }
+  return { procs, seq };
+}
+
+// ── np_ps(processes) — Non-Preemptive Priority Scheduling ─────
+// Core logic:
+//   Non-preemptive. At each scheduling decision, the process with
+//   the highest priority (lowest numeric value after normalization)
+//   among all arrived processes is chosen. Once started, it runs
+//   to completion regardless of new arrivals.
+//
+//   Strategy (mirrors sjf but ranks by priority instead of burst):
+//   1. Sort by arrival_time; pick the highest-priority process from
+//      those that have arrived simultaneously at t=0.
+//   2. After each process finishes, collect arrivals into readyQueue.
+//   3. Pick the process with the lowest priority number (highest
+//      urgency) from readyQueue.
+//   4. If the queue is empty, insert an idle block and wait for the
+//      next arrival.
+//
+//   NOTE: Priority values are pre-normalized by normalizePriority()
+//   before this function is called, so lower number always = higher
+//   priority regardless of the user's chosen convention.
+//
+//   waiting_time = finish_time_of_previous_process − arrival_time
+function np_ps(processes) {
+  const procs = clone(processes);
+  const n = procs.length;
+  if (n === 1) {
+    procs[0].waiting_time = 0;
+    return { procs, seq: [{ key: procs[0].key, start_time: procs[0].arrival_time, burst_time: procs[0].burst_time }] };
+  }
+  procs.sort((a,b) => a.arrival_time - b.arrival_time);
+  const secondIdx = procs.findIndex(p => p.arrival_time !== procs[0].arrival_time);
+  const pool = secondIdx === -1 ? procs : procs.slice(0, secondIdx);
+  let sj = pool.reduce((a,b) => a.priority <= b.priority ? a : b);
+  let sjIdx = procs.indexOf(sj);
+  let time = sj.arrival_time;
+  procs[sjIdx].waiting_time = 0;
+  let bt = procs[sjIdx].burst_time;
+  const readyQueue = [];
+  const seq = [{ key: sj.key, start_time: time, burst_time: sj.burst_time }];
+  const notArrived = procs.filter((_, i) => i !== sjIdx);
+  let completed = 1;
+
+  while (completed < n) {
+    const end = time + bt;
+    let arrivCtr = 0;
+    for (const pna of notArrived) {
+      if (pna.arrival_time >= time && pna.arrival_time <= end) { readyQueue.push(pna); arrivCtr++; }
+      else break;
+    }
+    notArrived.splice(0, arrivCtr);
+    time = end;
+    if (readyQueue.length > 0) {
+      const curr = readyQueue.reduce((a,b) => a.priority <= b.priority ? a : b);
+      curr.waiting_time = end - curr.arrival_time;
+      completed++;
+      readyQueue.splice(readyQueue.indexOf(curr), 1);
+      bt = curr.burst_time;
+      seq.push({ key: curr.key, start_time: time, burst_time: curr.burst_time });
+    } else if (notArrived.length > 0) {
+      bt = notArrived[0].arrival_time - end;
+      seq.push({ key: '-', start_time: end, burst_time: bt });
+    }
+  }
+  return { procs, seq };
+}
+
+// ── p_ps(processes) — Preemptive Priority Scheduling ──────────
+// Core logic:
+//   Preemptive. The CPU always runs the highest-priority process
+//   that has arrived. A running process is immediately preempted
+//   when a higher-priority process arrives.
+//
+//   Strategy (event-driven):
+//   1. At time=0, split processes into readyQueue (arrived) and
+//      notArrived (future arrivals).
+//   2. Pick the highest-priority process from readyQueue.
+//   3. Project how long it would run until its next interruption
+//      (next arrival in notArrived that falls before it finishes).
+//   4. For each arriving process during that window:
+//      a. Emit a seq block for time elapsed so far.
+//      b. If the new arrival has higher priority (lower number),
+//         preempt — switch to the new process.
+//   5. After all notArrived processes have been handled, the
+//      remaining readyQueue drains in non-preemptive priority order.
+//
+//   Key tracking fields per process:
+//     remaining_time: burst_time minus CPU time consumed so far
+//     time_executing: total CPU time accumulated (for WT calc)
+//     last_start_time / last_burst: used to compute WT accurately
+//       across multiple preempted runs
+//
+//   waiting_time = last_start_time − time_executing − arrival_time
+//                  (adjusted via last_burst for the final run)
+function p_ps(processes) {
+  const procs = clone(processes);
+  const n = procs.length;
+  if (n === 1) {
+    procs[0].waiting_time = 0;
+    return { procs, seq: [{ key: procs[0].key, start_time: procs[0].arrival_time, burst_time: procs[0].burst_time }] };
+  }
+  procs.sort((a,b) => a.arrival_time - b.arrival_time);
+  for (const p of procs) { p.remaining_time = p.burst_time; p.time_executing = 0; p.last_burst = 0; }
+  let time = procs[0].arrival_time;
+  const readyQueue = [];
+  const notArrived = [];
+  for (const p of procs) (p.arrival_time === time ? readyQueue : notArrived).push(p);
+  const hasNotArrived = notArrived.length > 0;
+  const seq = [];
+
+  while (notArrived.length > 0) {
+    let pcurr = readyQueue.reduce((a,b) => a.priority <= b.priority ? a : b);
+    let end = time + pcurr.remaining_time;
+    let newlyArrCtr = 0;
+    let prevAT = -1;
+    for (let i = 0; i < notArrived.length; i++) {
+      const pna = notArrived[i];
+      if (pna.arrival_time >= time && pna.arrival_time <= end) {
+        readyQueue.push(pna); newlyArrCtr++;
+        if (i === 0 || pna.arrival_time !== prevAT) {
+          const elapsed = pna.arrival_time - time;
+          pcurr.remaining_time -= elapsed;
+          const bt = pcurr.burst_time - pcurr.remaining_time;
+          pcurr.time_executing += bt;
+          if (seq.length === 0 || seq[seq.length-1].key !== pcurr.key) {
+            pcurr.last_start_time = time; pcurr.last_burst = bt;
+          } else { pcurr.last_burst += bt; }
+          seq.push({ key: pcurr.key, start_time: time, burst_time: bt });
+          time += elapsed; prevAT = pna.arrival_time;
+        }
+        if (pna.priority < pcurr.priority) {
+          pcurr = pna;
+          end = time + pcurr.remaining_time;
+          const bt2 = pcurr.burst_time - pcurr.remaining_time;
+          pcurr.time_executing += bt2;
+          if (seq.length === 0 || seq[seq.length-1].key !== pcurr.key) pcurr.last_start_time = time;
+          seq.push({ key: pcurr.key, start_time: time, burst_time: bt2 });
+        }
+      } else break;
+    }
+    notArrived.splice(0, newlyArrCtr);
+    if ('last_start_time' in pcurr) { pcurr.time_executing -= pcurr.last_burst; }
+    else {
+      pcurr.last_start_time = time;
+      seq.push({ key: pcurr.key, start_time: time, burst_time: pcurr.remaining_time });
+    }
+    readyQueue.splice(readyQueue.indexOf(pcurr), 1);
+    time = end;
+    if (readyQueue.length === 0 && notArrived.length > 0) {
+      const nxt = notArrived[0].arrival_time;
+      readyQueue.push(notArrived.splice(0,1)[0]);
+      seq.push({ key: '-', start_time: end, burst_time: nxt - end });
+      time = nxt;
+    }
+  }
+  readyQueue.sort((a,b) => a.priority - b.priority);
+  if (hasNotArrived && seq.length > 0) seq[seq.length-1].burst_time = time - seq[seq.length-1].start_time;
+  for (const p of readyQueue) {
+    p.last_start_time = time;
+    seq.push({ key: p.key, start_time: time, burst_time: p.remaining_time });
+    time += p.remaining_time;
+  }
+  for (const p of procs) {
+    p.waiting_time = (p.last_start_time || 0) - (p.time_executing || 0) - p.arrival_time;
+  }
+  return { procs, seq };
+}
+
+// ── ps_rr(processes, timeSlice) — Priority + Round Robin ──────
+// Core logic:
+//   Hybrid algorithm. Processes are first grouped by priority level.
+//   Within each priority group, Round Robin scheduling is applied
+//   using the given timeSlice. Groups are processed in priority order
+//   (highest priority group completes entirely before the next).
+//
+//   Strategy:
+//   1. Sort all processes by priority, then arrival_time.
+//   2. Extract the unique priority levels in sorted order.
+//   3. For each priority level:
+//      a. Collect only that priority's processes.
+//      b. Run a standard RR loop on just that group:
+//         - Maintain a ready queue (rq) and a not-yet-arrived list.
+//         - Each process gets min(timeSlice, remaining_time) CPU time.
+//         - Re-enqueue unfinished processes; enqueue newly arrived ones.
+//         - Insert idle blocks if the queue empties mid-group.
+//      c. The clock (time) carries forward across priority groups, so
+//         lower-priority groups start after higher-priority ones finish.
+//
+//   NOTE: This means lower-priority processes are starved until all
+//   higher-priority processes complete — a strict priority hierarchy.
+//
+//   waiting_time = last_start_time − time_executing − arrival_time
+function ps_rr(processes, timeSlice) {
+  const procs = clone(processes);
+  procs.sort((a,b) => a.priority - b.priority || a.arrival_time - b.arrival_time);
+  for (const p of procs) { p.remaining_time = p.burst_time; p.time_executing = 0; }
+  const priorities = [...new Set(procs.map(p=>p.priority))].sort((a,b)=>a-b);
+  const seq = [];
+  let time = procs[0].arrival_time;
+  const procMap = {};
+  for (const p of procs) procMap[p.key] = p;
+
+  
+  // Outer loop: one full RR pass per priority level (strict priority order)
+  for (const pri of priorities) {
+    const group = procs.filter(p => p.priority === pri);
+    group.sort((a,b) => a.arrival_time - b.arrival_time);
+    const rq = [group[0]];
+    const naList = group.slice(1);
+    while (rq.length > 0 || naList.length > 0) {
+      if (rq.length === 0) {
+        const nxt = naList.shift();
+        if (nxt.arrival_time > time) {
+          seq.push({ key: '-', start_time: time, burst_time: nxt.arrival_time - time });
+          time = nxt.arrival_time;
+        }
+        rq.push(nxt); continue;
+      }
+      const cur = rq.shift();
+      const run = Math.min(timeSlice, cur.remaining_time);
+      seq.push({ key: cur.key, start_time: time, burst_time: run });
+      cur.remaining_time -= run;
+      time += run;
+      let arrivCtr = 0;
+      for (const pna of naList) {
+        if (pna.arrival_time <= time) { rq.push(pna); arrivCtr++; }
+        else break;
+      }
+      naList.splice(0, arrivCtr);
+      if (cur.remaining_time > 0) { cur.time_executing += run; rq.push(cur); }
+      else { cur.last_start_time = time - run; }
+    }
+  }
+
+  for (const p of procs) {
+    p.waiting_time = (p.last_start_time || 0) - (p.time_executing || 0) - p.arrival_time;
+  }
+  return { procs, seq };
+}
+
+// ── computeStats(procs, seq) ──────────────────────────────────
+// Post-processes the raw algorithm output to compute derived metrics.
+//
+// INPUT:
+//   procs[] — process array with waiting_time already set by the algo.
+//   seq[]   — execution timeline (key, start_time, burst_time).
+//
+// OUTPUT: Enriches each process object with:
+//   finish_time     = latest end time seen for this process in seq
+//   turnaround_time = finish_time − arrival_time
+//   waiting_time    = clamped to 0 if negative (rounding safety)
+//
+// Returns aggregate stats object: { totalWT, totalTAT, avgWT, avgTAT }
+// used to populate the Statistics summary cards in the results panel.
+function computeStats(procs, seq) {
+  const finishTimes = {};
+  for (const s of seq) {
+    if (s.key !== '-') {
+      finishTimes[s.key] = Math.max(finishTimes[s.key] || 0, s.start_time + s.burst_time);
+    }
+  }
+  for (const p of procs) {
+    p.finish_time = finishTimes[p.key] || 0;
+    p.turnaround_time = p.finish_time - p.arrival_time;
+    if (p.waiting_time === undefined || p.waiting_time < 0) p.waiting_time = 0;
+  }
+  const totalWT  = procs.reduce((s,p) => s + p.waiting_time, 0);
+  const totalTAT = procs.reduce((s,p) => s + p.turnaround_time, 0);
+  const avgWT  = totalWT  / procs.length;
+  const avgTAT = totalTAT / procs.length;
+  return { totalWT, totalTAT, avgWT, avgTAT };
+}
+
+// ── normalizePriority(processes) ─────────────────────────────
+// Normalizes priority values so all scheduling algorithms can
+// assume: lower numeric value = higher urgency.
+//
+// When higherIsBetter is true (user set "Higher Number = higher
+// priority"), this function inverts priorities by computing:
+//   p.priority = maxPriority − p.priority
+// This maps, e.g., [1,2,3] → [2,1,0], so the largest original
+// value becomes 0 (most urgent) after transformation.
+//
+// Called before running algos 5, 6, or 7. Mutates in place.
+function normalizePriority(processes) {
+  if (higherIsBetter) {
+    const maxP = Math.max(...processes.map(p => p.priority));
+    for (const p of processes) p.priority = maxP - p.priority;
+  }
+}
+
+// ── runSimulation() ───────────────────────────────────────────
+// Main entry point triggered by the "Run Simulation" button.
+// Orchestrates the full pipeline:
+//
+//   1. INPUT VALIDATION
+//      Calls readProcesses() to parse and validate the sidebar table.
+//      Validates that timeSlice > 0 for RR/PS-RR algorithms.
+//
+//   2. PRIORITY NORMALIZATION
+//      Calls normalizePriority() for priority algorithms (5, 6, 7)
+//      to ensure internal algorithms always treat lower = more urgent.
+//
+//   3. ALGORITHM DISPATCH
+//      Routes to the correct algorithm function based on selectedAlgo:
+//        1 → fcfs      2 → sjf      3 → srt
+//        4 → rr        5 → np_ps    6 → p_ps    7 → ps_rr
+//
+//   4. POST-PROCESSING
+//      Filters zero-duration seq entries, then calls computeStats()
+//      to derive finish_time, turnaround_time, and averages.
+//
+//   5. RENDER
+//      Calls renderResults() to build and inject the full results
+//      HTML (execution sequence, Gantt chart, table, stats cards).
+//
+// Any validation or runtime error is caught and shown via showError().
+function runSimulation() {
+  document.getElementById('errorMsg').style.display = 'none';
+  let processes;
+  try { processes = readProcesses(); }
+  catch(e) { showError(e.message); return; }
+
+  const timeSlice = parseInt(document.getElementById('quantum').value) || 2;
+  if ([4,7].includes(selectedAlgo) && timeSlice <= 0) {
+    showError('Time quantum must be a positive integer.'); return;
+  }
+
+  if ([5,6,7].includes(selectedAlgo)) normalizePriority(processes);
+
+  let result;
+  try {
+    if      (selectedAlgo === 1) result = fcfs(processes);
+    else if (selectedAlgo === 2) result = sjf(processes);
+    else if (selectedAlgo === 3) result = srt(processes);
+    else if (selectedAlgo === 4) result = rr(processes, timeSlice);
+    else if (selectedAlgo === 5) result = np_ps(processes);
+    else if (selectedAlgo === 6) result = p_ps(processes);
+    else if (selectedAlgo === 7) result = ps_rr(processes, timeSlice);
+  } catch(e) { showError('Simulation error: ' + e.message); return; }
+
+  const { procs, seq } = result;
+  const cleanSeq = seq.filter(s => s.burst_time > 0);
+  const stats = computeStats(procs, cleanSeq);
+
+  renderResults(procs, cleanSeq, stats);
+}
+
+// ── renderResults(procs, seq, stats) ─────────────────────────
+// Builds and injects the complete results UI into #resultsArea.
+//
+// INPUT:
+//   procs[] — process array enriched with waiting_time,
+//             finish_time, turnaround_time by computeStats().
+//   seq[]   — execution timeline: [{ key, start_time, burst_time }]
+//             key='-' represents CPU idle periods.
+//   stats   — { totalWT, totalTAT, avgWT, avgTAT }
+//
+// OUTPUT: Sets innerHTML of #resultsArea with four sections:
+//
+//   1. ALGORITHM LABEL — Shows full name and short tag of the
+//      selected algorithm.
+//
+//   2. EXECUTION SEQUENCE — Pill-shaped badges showing process
+//      order (e.g. P1 › P2 › - › P3), including idle slots.
+//
+//   3. GANTT CHART — Proportionally-scaled colored blocks.
+//      Width per block = burst_time × PX_PER_UNIT.
+//      PX_PER_UNIT is adaptive (8–40 px) based on total time span
+//      to keep the chart readable for both short and long schedules.
+//      Time ticks below the chart show start times per block.
+//      Colors are assigned from PROC_COLORS by process index.
+//
+//   4. PROCESS SUMMARY TABLE — Per-process row showing:
+//      Arrival, Burst, (Priority if applicable), Waiting, Turnaround.
+//      Rows sorted alphanumerically by process ID.
+//
+//   5. STATISTICS CARDS — Four metric cards:
+//      Total WT, Average WT, Total TAT, Average TAT (in ms).
+function renderResults(procs, seq, stats) {
+  const needsPri = [5,6,7].includes(selectedAlgo);
+  const colorMap = {};
+  procs.forEach((p,i) => colorMap[p.key] = PROC_COLORS[i % PROC_COLORS.length]);
+
+  const totalTime = seq.reduce((s,x) => s + x.burst_time, 0) || 1;
+  const GANTT_W = 820;
+  const PX_PER_UNIT = Math.min(40, Math.max(8, GANTT_W / totalTime));
+
+  // Build Gantt
+  let ganttBlocks = '';
+  let ticksHtml = '';
+  let runningTime = seq[0]?.start_time || 0;
+
+  for (const s of seq) {
+    const w = s.burst_time * PX_PER_UNIT;
+    const isIdle = s.key === '-';
+    const bg = isIdle ? '' : colorMap[s.key] || '#73A1B2';
+    const style = isIdle ? '' : `background:${bg};`;
+    ganttBlocks += `<div class="gantt-block${isIdle?' idle':''}" style="${style}width:${w}px" title="${s.key} | t=${s.start_time}–${s.start_time+s.burst_time}">${s.key}</div>`;
+  }
+
+  // Ticks
+  let tStart = seq[0]?.start_time || 0;
+  let cumW = 0;
+  for (const s of seq) {
+    const w = s.burst_time * PX_PER_UNIT;
+    ticksHtml += `<div class="gantt-tick" style="width:${w}px">${tStart}</div>`;
+    tStart += s.burst_time;
+    cumW += w;
+  }
+  const lastT = seq.length > 0 ? (seq[seq.length-1].start_time + seq[seq.length-1].burst_time) : 0;
+
+  // Sequence pills
+  let seqHtml = '';
+  for (let i = 0; i < seq.length; i++) {
+    const s = seq[i];
+    seqHtml += `<div class="seq-item${s.key==='-'?' idle':''}">${s.key}</div>`;
+    if (i < seq.length-1) seqHtml += `<span class="seq-arrow">›</span>`;
+  }
+
+  // Results table
+  const priHead = needsPri ? '<th>Priority</th>' : '';
+  let tableRows = '';
+  const sortedProcs = [...procs].sort((a,b) => a.key.localeCompare(b.key, undefined, {numeric:true}));
+  for (const p of sortedProcs) {
+    const priCell = needsPri ? `<td>${p.priority}</td>` : '';
+    tableRows += `<tr>
+      <td><span class="process-id">${p.key}</span></td>
+      <td>${p.arrival_time}</td>
+      <td>${p.burst_time}</td>
+      ${priCell}
+      <td>${p.waiting_time}</td>
+      <td>${p.turnaround_time}</td>
+    </tr>`;
+  }
+
+  document.getElementById('resultsArea').innerHTML = `
+    <div>
+      <div class="panel-title">
+        Algorithm
+        <span class="algo-tag">${ALGO_SHORT[selectedAlgo]}</span>
+      </div>
+      <p style="font-size:0.82rem;color:var(--subtle);font-style:italic">${ALGO_NAMES[selectedAlgo]}</p>
+    </div>
+
+    <div>
+      <div class="panel-title">Execution Sequence</div>
+      <div class="seq-wrap">${seqHtml}</div>
+    </div>
+
+    <div>
+      <div class="panel-title">Gantt Chart</div>
+      <div class="gantt-scroll">
+        <div class="gantt-wrap">
+          <div class="gantt-row">${ganttBlocks}</div>
+          <div class="gantt-ticks">${ticksHtml}<div class="gantt-tick">${lastT}</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel-title">Process Summary</div>
+      <div style="overflow-x:auto">
+        <table class="results-table">
+          <thead><tr>
+            <th>Process</th><th>Arrival</th><th>Burst</th>
+            ${priHead}
+            <th>Waiting</th><th>Turnaround</th>
+          </tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel-title">Statistics</div>
+      <div class="summary-cards">
+        <div class="card">
+          <div class="card-label">Total Waiting Time</div>
+          <div class="card-value">${stats.totalWT}<span class="card-unit">ms</span></div>
+        </div>
+        <div class="card">
+          <div class="card-label">Avg Waiting Time</div>
+          <div class="card-value">${stats.avgWT.toFixed(2)}<span class="card-unit">ms</span></div>
+        </div>
+        <div class="card" style="border-top-color:var(--sky)">
+          <div class="card-label">Total Turnaround</div>
+          <div class="card-value">${stats.totalTAT}<span class="card-unit">ms</span></div>
+        </div>
+        <div class="card" style="border-top-color:var(--sky)">
+          <div class="card-label">Avg Turnaround</div>
+          <div class="card-value">${stats.avgTAT.toFixed(2)}<span class="card-unit">ms</span></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ── Boot ──────────────────────────────────────────────────────
+// Immediately builds the initial process table on page load
+// using default values (3 processes, FCFS algorithm).
+document.addEventListener('DOMContentLoaded', () => {
+  buildProcessTable();
+  document.getElementById('runBtn').addEventListener('click', runSimulation);
+});
+</script>
+</body>
+</html>
