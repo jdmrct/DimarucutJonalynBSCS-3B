@@ -7,3 +7,8 @@ How to Run the Program
 
 # The simulator will open directly in your browser
 
+How to use the CPU Scheduling Simulator
+1. Choose an algorithm
+2. Input number of processes
+3. Input appropriate values
+4. Click "Run Simulation" button
