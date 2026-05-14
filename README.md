@@ -3,9 +3,9 @@
 1. Go to this repository on GitHub
 2. Click this link https://jdmrct.github.io/DIMARUCUT-JF.-BSCS-3B/ or copy and paste it your browser.
 
-# # The simulator will open directly in your browser
+# The simulator will open directly in your browser
 
-How to use the CPU Scheduling Simulator
+# How to use the CPU Scheduling Simulator
 1. Choose an algorithm
 2. Input number of processes
 3. Input appropriate values
