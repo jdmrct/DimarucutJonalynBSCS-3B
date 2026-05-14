@@ -12,3 +12,7 @@ How to use the CPU Scheduling Simulator
 2. Input number of processes
 3. Input appropriate values
 4. Click "Run Simulation" button
+
+#IMPORTANT NOTE:
+Due to the limit of video size in github, I uploaded the video presentation on google drive
+#Please access it at https://drive.google.com/file/d/11LuC5nh9EgPwF3FLD6ug0KnuPPN1P6JN/view?usp=sharing
